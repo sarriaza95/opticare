@@ -2,7 +2,7 @@ const express = require('express');
 const { saveFormData, saveFormDataCita } = require('../controllers/formControllers');
 const upload = require('../middlewares/uploadMiddleware');
 const { saveBiomicroscopiaData } = require('../controllers/biomicroscopiaController');
-const { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle } = require('../controllers/getClienteController');
+const { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia } = require('../controllers/getClienteController');
 
 const router = express.Router();
 
@@ -21,6 +21,11 @@ router.get('/clientes/:id', getClienteById);
 
 // Actualizar la información de un cliente
 router.put('/clientes/:id', updateCliente);
+
+// Ruta para eliminar un cliente
+router.delete('/clientes/:id', eliminarCliente);
+
+router.get('/biomicroscopia/:id', obtenerBiomicroscopia);
 
 router.post('/save-form-cita/:id', saveFormDataCita);
 

@@ -77,6 +77,52 @@ const getClienteById = async (req, res) => {
       res.status(500).json({ error: 'Error al actualizar información del cliente' });
     }
   }
+  const eliminarCliente = async (req, res) => {
+    const { id } = req.params;
+  
+    try {
+      const result = await pool.query('DELETE FROM clientes WHERE cliente_id = $1', [id]);
+  
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'Cliente no encontrado' });
+      }
+  
+      res.status(200).json({ message: 'Cliente eliminado exitosamente' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error al eliminar el cliente' });
+    }
+  }
+  const obtenerBiomicroscopia = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const query = `
+        SELECT od_images, oi_videos
+        FROM biomicroscopia_archivo
+        WHERE expediente_id = $1
+      `;
+      const { rows } = await pool.query(query, [id]);
+  
+      if (rows.length === 0) {
+        return res.status(404).json({ message: 'Datos no encontrados' });
+      }
+  
+      const row = rows[0];
+  
+      // Convertir las columnas a JSON si no lo son
+      const odImages = typeof row.od_images === 'string' ? JSON.parse(row.od_images) : row.od_images;
+      const oiVideos = typeof row.oi_videos === 'string' ? JSON.parse(row.oi_videos) : row.oi_videos;
+  
+      res.json({
+        od_images: odImages,
+        oi_videos: oiVideos,
+      });
+    } catch (error) {
+      console.error('Error obteniendo datos de biomicroscopia:', error);
+      res.status(500).json({ message: 'Error interno del servidor' });
+    }
+  };
+  
   // Controlador para obtener expedientes de un cliente
 const getExpedientesByCliente = async (req, res) => {
   const clienteId = req.params.cliente_id;
@@ -146,4 +192,4 @@ const getExpedienteDetalle = async (req, res) => {
   }
 };
 
-module.exports = { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle };
+module.exports = { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia };
