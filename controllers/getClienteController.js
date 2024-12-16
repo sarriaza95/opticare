@@ -97,7 +97,7 @@ const getClienteById = async (req, res) => {
     try {
       const { id } = req.params;
       const query = `
-        SELECT od_images, oi_videos
+        SELECT od_images, oi_videos, oi_images, od_videos
         FROM biomicroscopia_archivo
         WHERE expediente_id = $1
       `;
@@ -112,16 +112,21 @@ const getClienteById = async (req, res) => {
       // Convertir las columnas a JSON si no lo son
       const odImages = typeof row.od_images === 'string' ? JSON.parse(row.od_images) : row.od_images;
       const oiVideos = typeof row.oi_videos === 'string' ? JSON.parse(row.oi_videos) : row.oi_videos;
+      const oiImages = typeof row.oi_images === 'string' ? JSON.parse(row.oi_images) : row.oi_images;
+      const odVideos = typeof row.od_videos === 'string' ? JSON.parse(row.od_videos) : row.od_videos;
   
       res.json({
         od_images: odImages,
         oi_videos: oiVideos,
+        oi_images: oiImages,
+        od_videos: odVideos,
       });
     } catch (error) {
       console.error('Error obteniendo datos de biomicroscopia:', error);
       res.status(500).json({ message: 'Error interno del servidor' });
     }
   };
+  
   
   // Controlador para obtener expedientes de un cliente
 const getExpedientesByCliente = async (req, res) => {
@@ -192,4 +197,170 @@ const getExpedienteDetalle = async (req, res) => {
   }
 };
 
-module.exports = { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia };
+const updateExpediente = async (req, res) => {
+  const expedienteId = req.params.id;
+  const {
+    antecedentes,
+    lensometria,
+    tipoLentes,
+    examenObjetivo,
+    rxFinal,
+    biomicroscopia,
+    fondoOjo,
+    motilidadOcular,
+    coverTest,
+    pio,
+    diagnostico,
+    datosMontaje,
+    queratometria,
+    observaciones,
+  } = req.body;
+
+  try {
+    // Iniciar una transacción para asegurar la integridad de los datos
+    await pool.query('BEGIN');
+
+    // 1. Actualizar antecedentes
+    if (antecedentes) {
+      await pool.query(
+        `UPDATE antecedentes SET personales = $1, oculares = $2 WHERE expediente_id = $3`,
+        [antecedentes.personales, antecedentes.oculares, expedienteId]
+      );
+    }
+
+    // 2. Actualizar lensometría
+    if (lensometria) {
+      await pool.query(
+        `UPDATE lensometria SET 
+          od_esf = $1, od_cil = $2, od_eje = $3,
+          oi_esf = $4, oi_cil = $5, oi_eje = $6, add = $7
+         WHERE expediente_id = $8`,
+        [
+          lensometria.od.esf, lensometria.od.cil, lensometria.od.eje,
+          lensometria.oi.esf, lensometria.oi.cil, lensometria.oi.eje,
+          lensometria.add, expedienteId,
+        ]
+      );
+    }
+
+    // 3. Actualizar tipo de lentes
+    if (tipoLentes) {
+      await pool.query(
+        `UPDATE tipo_lentes SET tipo_lentes = $1 WHERE expediente_id = $2`,
+        [tipoLentes.tipoLentes, expedienteId]
+      );
+    }
+
+    // 4. Actualizar examen objetivo
+    if (examenObjetivo) {
+      await pool.query(
+        `UPDATE examen_objetivo SET 
+          od_esf = $1, od_cil = $2, od_eje = $3, od_avsc = $4,
+          oi_esf = $5, oi_cil = $6, oi_eje = $7, oi_avsc = $8
+         WHERE expediente_id = $9`,
+        [
+          examenObjetivo.od.esf, examenObjetivo.od.cil, examenObjetivo.od.eje, examenObjetivo.od.avsc,
+          examenObjetivo.oi.esf, examenObjetivo.oi.cil, examenObjetivo.oi.eje, examenObjetivo.oi.avsc,
+          expedienteId,
+        ]
+      );
+    }
+
+    // 5. Actualizar rxFinal
+    if (rxFinal) {
+      await pool.query(
+        `UPDATE rx_final SET 
+          od_esf = $1, od_cil = $2, od_eje = $3, od_avl = $4, od_avc = $5, od_dnp = $6, od_alt = $7,
+          oi_esf = $8, oi_cil = $9, oi_eje = $10, oi_avl = $11, oi_avc = $12, oi_dnp = $13, oi_alt = $14,
+          add = $15 WHERE expediente_id = $16`,
+        [
+          rxFinal.od.esf, rxFinal.od.cil, rxFinal.od.eje, rxFinal.od.avl, rxFinal.od.avc, rxFinal.od.dnp, rxFinal.od.alt,
+          rxFinal.oi.esf, rxFinal.oi.cil, rxFinal.oi.eje, rxFinal.oi.avl, rxFinal.oi.avc, rxFinal.oi.dnp, rxFinal.oi.alt,
+          rxFinal.add, expedienteId,
+        ]
+      );
+    }
+
+    // 7. Actualizar fondo de ojo
+    if (fondoOjo) {
+      await pool.query(
+        `UPDATE fondo_ojo SET od = $1, oi = $2 WHERE expediente_id = $3`,
+        [fondoOjo.od, fondoOjo.oi, expedienteId]
+      );
+    }
+
+    // 8. Actualizar motilidad ocular
+    if (motilidadOcular) {
+      await pool.query(
+        `UPDATE motilidad_ocular SET od = $1, oi = $2, ao = $3 WHERE expediente_id = $4`,
+        [motilidadOcular.od, motilidadOcular.oi, motilidadOcular.ao, expedienteId]
+      );
+    }
+
+    // 9. Actualizar cover test
+    if (coverTest) {
+      await pool.query(
+        `UPDATE cover_test SET 
+          od_vl = $1, od_vp = $2, oi_vl = $3, oi_vp = $4 
+         WHERE expediente_id = $5`,
+        [coverTest.odVl, coverTest.odVp, coverTest.oiVl, coverTest.oiVp, expedienteId]
+      );
+    }
+
+    // 10. Actualizar pio
+    if (pio) {
+      await pool.query(
+        `UPDATE pio SET od_pio = $1, oi_pio = $2 WHERE expediente_id = $3`,
+        [pio.odPio, pio.oiPio, expedienteId]
+      );
+    }
+
+    // 11. Actualizar datos montaje
+    if (datosMontaje) {
+      await pool.query(
+        `UPDATE datos_montaje SET 
+          od_h = $1, od_v = $2, oi_h = $3, oi_v = $4
+         WHERE expediente_id = $5`,
+        [datosMontaje.odH, datosMontaje.odV, datosMontaje.oiH, datosMontaje.oiV, expedienteId]
+      );
+    }
+
+    // 12. Actualizar queratometría
+    if (queratometria) {
+      await pool.query(
+        `UPDATE queratometria SET od_keratometria = $1, oi_keratometria = $2 WHERE expediente_id = $3`,
+        [queratometria.odKeratometria, queratometria.oiKeratometria, expedienteId]
+      );
+    }
+
+    // 13. Actualizar observaciones
+    if (observaciones) {
+      await pool.query(
+        `UPDATE observaciones SET observaciones = $1 WHERE expediente_id = $2`,
+        [observaciones.observaciones, expedienteId]
+      );
+    }
+    
+    // Ejemplo para "diagnostico"
+    if (diagnostico) {
+      await pool.query(
+        `UPDATE diagnostico SET 
+          diagnostico = $1, tipos_lentes = $2, proxima_cita = $3, observaciones = $4 
+         WHERE expediente_id = $5`,
+        [diagnostico.diagnostico, diagnostico.tiposLentes, diagnostico.proximaCita, diagnostico.observaciones, expedienteId]
+      );
+    }
+
+    // 6. Confirmar transacción
+    await pool.query('COMMIT');
+
+    res.status(200).json({ message: 'Expediente actualizado correctamente' });
+  } catch (error) {
+    // Revertir transacción en caso de error
+    await pool.query('ROLLBACK');
+    console.error('Error al actualizar expediente:', error);
+    res.status(500).json({ error: 'Error al actualizar expediente' });
+  }
+};
+
+module.exports = { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia, updateExpediente };
