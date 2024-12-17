@@ -2,7 +2,7 @@ const express = require('express');
 const { saveFormData, saveFormDataCita } = require('../controllers/formControllers');
 const upload = require('../middlewares/uploadMiddleware');
 const { saveBiomicroscopiaData } = require('../controllers/biomicroscopiaController');
-const { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia, updateExpediente } = require('../controllers/getClienteController');
+const { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia, updateExpediente, generarPDFExpediente  } = require('../controllers/getClienteController');
 
 const router = express.Router();
 
@@ -37,4 +37,7 @@ router.get('/expedientes-detalle/:expediente_id', getExpedienteDetalle);
 
 // Ruta para actualizar un expediente
 router.put('/:id', updateExpediente);
+
+// Ruta para generar PDF
+router.post('/generar-pdf', generarPDFExpediente);
 module.exports = router;

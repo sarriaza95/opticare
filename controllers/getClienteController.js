@@ -1,4 +1,7 @@
 const pool = require('../models/db'); // Conexión a la base de datos
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 
 // Controlador para obtener los datos de clientes
 const obtenerClientes = async (req, res) => {
@@ -363,4 +366,139 @@ const updateExpediente = async (req, res) => {
   }
 };
 
-module.exports = { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia, updateExpediente };
+const generarPDFExpediente = (req, res) => {
+  try {
+    const {
+      antecedentes,
+      lensometria,
+      tipoLentes,
+      examenObjetivo,
+      rxFinal,
+      biomicroscopia,
+      fondoOjo,
+      motilidadOcular,
+      coverTest,
+      pio,
+      diagnostico,
+      datosMontaje,
+      queratometria,
+      observaciones,
+    } = req.body;
+
+    const fileName = `expediente-${Date.now()}.pdf`;
+    const filePath = path.join(__dirname, `../uploads/${fileName}`);
+
+    // Crear PDF
+    const doc = new PDFDocument();
+    doc.pipe(fs.createWriteStream(filePath)); // Guardar localmente
+    doc.pipe(res); // Enviar al cliente directamente
+
+    // Agregar el logo en la parte superior
+    const logoPath = path.join(__dirname, '../uploads/logo_opticare.png'); // Ruta del logo
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, 50, 30, { width: 100 }); // Ajusta la posición y tamaño del logo
+      doc.moveDown();
+      doc.moveDown();
+    }
+
+    doc.fontSize(18).text('Expediente Médico', { align: 'center' });
+    doc.moveDown();
+
+    // 1. Antecedentes
+    doc.fontSize(14).text('1. Antecedentes');
+    doc.fontSize(12).text(`- Personales: ${antecedentes?.personales || 'N/A'}`);
+    doc.fontSize(12).text(`- Oculares: ${antecedentes?.oculares || 'N/A'}`);
+    doc.moveDown();
+
+    // 2. Lensometría
+    doc.fontSize(14).text('2. Lensometría');
+    doc.fontSize(12).text(`OD - Esf: ${lensometria.od.esf}, Cil: ${lensometria.od.cil}, Eje: ${lensometria.od.eje}`);
+    doc.fontSize(12).text(`OI - Esf: ${lensometria.oi.esf}, Cil: ${lensometria.oi.cil}, Eje: ${lensometria.oi.eje}`);
+    doc.text(`Add: ${lensometria.add || 'N/A'}`);
+    doc.moveDown();
+
+    // 3. Tipo de Lentes
+    doc.fontSize(14).text('3. Tipo de Lentes');
+    doc.text(`Tipo: ${tipoLentes.tipoLentes || 'N/A'}`);
+    doc.moveDown();
+
+    // 4. Examen Objetivo
+    doc.fontSize(14).text('4. Examen Objetivo');
+    doc.fontSize(12).text(`OD - Esf: ${examenObjetivo.od.esf}, Cil: ${examenObjetivo.od.cil}, AVSC: ${examenObjetivo.od.avsc}`);
+    doc.text(`OI - Esf: ${examenObjetivo.oi.esf}, Cil: ${examenObjetivo.oi.cil}, AVSC: ${examenObjetivo.oi.avsc}`);
+    doc.moveDown();
+
+    // 5. RX Final
+    doc.fontSize(14).text('5. RX Final');
+    doc.text(`OD - Esf: ${rxFinal.od.esf}, Cil: ${rxFinal.od.cil}, AVL: ${rxFinal.od.avl}`);
+    doc.text(`OI - Esf: ${rxFinal.oi.esf}, Cil: ${rxFinal.oi.cil}, AVL: ${rxFinal.oi.avl}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text('6. Fondo de Ojo');
+    doc.text(`OD : ${fondoOjo.od}`);
+    doc.text(`OI : ${fondoOjo.oi}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text('7. Motilidad Ocular');
+    doc.text(`OD : ${motilidadOcular.od}`);
+    doc.text(`OI : ${motilidadOcular.oi}`);
+    doc.text(`AO : ${motilidadOcular.ao}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text('8. Cover Test');
+    doc.text(`OD : ${coverTest.odVl}`);
+    doc.text(`OI : ${coverTest.odVp}`);
+    doc.text(`AO : ${coverTest.oiVl}`);
+    doc.text(`AO : ${coverTest.oiVp}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text('9. PIO');
+    doc.text(`odPio : ${pio.odPio}`);
+    doc.text(`odPio : ${pio.odPio}`);
+    doc.moveDown();
+
+    
+    doc.fontSize(14).text('10. Diagnóstico');
+    doc.fontSize(12).text(diagnostico.diagnostico);
+    doc.fontSize(12).text(diagnostico.tiposLentes);
+    doc.fontSize(12).text(diagnostico.proximaCita);
+    doc.fontSize(12).text(diagnostico.observaciones || 'No hay observaciones');
+    doc.moveDown();
+
+    doc.fontSize(14).text('11. Datos Montajes');
+    doc.fontSize(12).text(datosMontaje.odH);
+    doc.fontSize(12).text(datosMontaje.odV);
+    doc.fontSize(12).text(datosMontaje.oiH);
+    doc.fontSize(12).text(datosMontaje.oiV);
+    doc.moveDown();
+
+    doc.fontSize(14).text('12. Queratometría');
+    doc.fontSize(12).text(queratometria.odKeratometria);
+    doc.fontSize(12).text(queratometria.oiKeratometria);
+    doc.moveDown();
+
+    doc.fontSize(14).text('13. Observaciones');
+    doc.fontSize(12).text(observaciones.observaciones);
+    doc.moveDown();
+    doc.moveDown();
+
+    // Información del responsable - después de observaciones
+    doc.fontSize(12).text('___________________________', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(10).text('Lic. Winston Membreño', { align: 'center' });
+    doc.text('Gerente en OptiCare Centro Visual.', { align: 'center' });
+    doc.text('Optometrista Médico', { align: 'center' });
+    doc.text('Cod MINSA 53138', { align: 'center' });
+
+    // Finalizar PDF
+    doc.end();
+
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+    res.setHeader('Content-Type', 'application/pdf');
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    res.status(500).json({ error: 'Error al generar PDF' });
+  }
+};
+
+module.exports = { obtenerClientes, getClienteById, updateCliente, getExpedientesByCliente, getExpedienteDetalle, eliminarCliente, obtenerBiomicroscopia, updateExpediente, generarPDFExpediente };
