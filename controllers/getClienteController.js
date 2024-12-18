@@ -2,6 +2,7 @@ const pool = require('../models/db'); // Conexión a la base de datos
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+require('pdfkit-table'); // Importar pdfkit-table
 
 // Controlador para obtener los datos de clientes
 const obtenerClientes = async (req, res) => {
@@ -412,8 +413,10 @@ const generarPDFExpediente = (req, res) => {
 
     // 2. Lensometría
     doc.fontSize(14).text('2. Lensometría');
-    doc.fontSize(12).text(`OD - Esf: ${lensometria.od.esf}, Cil: ${lensometria.od.cil}, Eje: ${lensometria.od.eje}`);
-    doc.fontSize(12).text(`OI - Esf: ${lensometria.oi.esf}, Cil: ${lensometria.oi.cil}, Eje: ${lensometria.oi.eje}`);
+    doc.moveDown();
+    doc.text('Ojo   ESF   CIL   EJE', { underline: true }); // Cabecera
+    doc.text(`OD    ${lensometria.od.esf || 'N/A'}   ${lensometria.od.cil || 'N/A'}   ${lensometria.od.eje || 'N/A'}`);
+    doc.text(`OI    ${lensometria.oi.esf || 'N/A'}   ${lensometria.oi.cil || 'N/A'}   ${lensometria.oi.eje || 'N/A'}`);
     doc.text(`Add: ${lensometria.add || 'N/A'}`);
     doc.moveDown();
 
@@ -424,20 +427,37 @@ const generarPDFExpediente = (req, res) => {
 
     // 4. Examen Objetivo
     doc.fontSize(14).text('4. Examen Objetivo');
-    doc.fontSize(12).text(`OD - Esf: ${examenObjetivo.od.esf}, Cil: ${examenObjetivo.od.cil}, AVSC: ${examenObjetivo.od.avsc}`);
-    doc.text(`OI - Esf: ${examenObjetivo.oi.esf}, Cil: ${examenObjetivo.oi.cil}, AVSC: ${examenObjetivo.oi.avsc}`);
+    doc.moveDown();
+    doc.fontSize(12).text('Ojo     ESF       CIL       EJE       AVSC', { underline: true }); // Cabecera
+    doc.text(
+      `OD      ${examenObjetivo.od.esf || 'N/A'}       ${examenObjetivo.od.cil || 'N/A'}       ${examenObjetivo.od.eje || 'N/A'}       ${examenObjetivo.od.avsc || 'N/A'}`
+    );
+    doc.text(
+      `OI      ${examenObjetivo.oi.esf || 'N/A'}       ${examenObjetivo.oi.cil || 'N/A'}       ${examenObjetivo.oi.eje || 'N/A'}       ${examenObjetivo.oi.avsc || 'N/A'}`
+    );
     doc.moveDown();
 
     // 5. RX Final
     doc.fontSize(14).text('5. RX Final');
-    doc.text(`OD - Esf: ${rxFinal.od.esf}, Cil: ${rxFinal.od.cil}, AVL: ${rxFinal.od.avl}`);
-    doc.text(`OI - Esf: ${rxFinal.oi.esf}, Cil: ${rxFinal.oi.cil}, AVL: ${rxFinal.oi.avl}`);
+    doc.moveDown();
+    doc.fontSize(12).text('Ojo     ESF       CIL       AVL       AVC       DNP       ALT', { underline: true }); // Cabecera
+    doc.text(
+      `OD      ${rxFinal.od.esf || 'N/A'}       ${rxFinal.od.cil || 'N/A'}       ${rxFinal.od.avl || 'N/A'}       ${rxFinal.od.avc || 'N/A'}       ${rxFinal.od.dnp || 'N/A'}       ${rxFinal.od.alt || 'N/A'}`
+    );
+    doc.text(
+      `OI      ${rxFinal.oi.esf || 'N/A'}       ${rxFinal.oi.cil || 'N/A'}       ${rxFinal.oi.avl || 'N/A'}       ${rxFinal.oi.avc || 'N/A'}       ${rxFinal.oi.dnp || 'N/A'}       ${rxFinal.oi.alt || 'N/A'}`
+    );
+    doc.text(`Add: ${rxFinal.add || 'N/A'}`);
     doc.moveDown();
 
+    // 6. Fondo de Ojo
     doc.fontSize(14).text('6. Fondo de Ojo');
-    doc.text(`OD : ${fondoOjo.od}`);
-    doc.text(`OI : ${fondoOjo.oi}`);
     doc.moveDown();
+    doc.fontSize(12).text('Ojo     Fondo', { underline: true }); // Cabecera
+    doc.text(`OD      ${fondoOjo.od || 'N/A'}`);
+    doc.text(`OI      ${fondoOjo.oi || 'N/A'}`);
+    doc.moveDown();
+
 
     doc.fontSize(14).text('7. Motilidad Ocular');
     doc.text(`OD : ${motilidadOcular.od}`);
@@ -457,28 +477,29 @@ const generarPDFExpediente = (req, res) => {
     doc.text(`odPio : ${pio.odPio}`);
     doc.moveDown();
 
-    
-    doc.fontSize(14).text('10. Diagnóstico');
-    doc.fontSize(12).text(diagnostico.diagnostico);
-    doc.fontSize(12).text(diagnostico.tiposLentes);
-    doc.fontSize(12).text(diagnostico.proximaCita);
-    doc.fontSize(12).text(diagnostico.observaciones || 'No hay observaciones');
+    doc.fontSize(14).text('10. Queratometría');
+    doc.fontSize(12).text(`OD : ${queratometria.odKeratometria}`);
+    doc.fontSize(12).text(`OI : ${queratometria.oiKeratometria}`);
     doc.moveDown();
 
-    doc.fontSize(14).text('11. Datos Montajes');
-    doc.fontSize(12).text(datosMontaje.odH);
-    doc.fontSize(12).text(datosMontaje.odV);
-    doc.fontSize(12).text(datosMontaje.oiH);
-    doc.fontSize(12).text(datosMontaje.oiV);
-    doc.moveDown();
-
-    doc.fontSize(14).text('12. Queratometría');
-    doc.fontSize(12).text(queratometria.odKeratometria);
-    doc.fontSize(12).text(queratometria.oiKeratometria);
-    doc.moveDown();
-
-    doc.fontSize(14).text('13. Observaciones');
+    doc.fontSize(14).text('11. Observaciones');
     doc.fontSize(12).text(observaciones.observaciones);
+    doc.moveDown();
+    
+    doc.fontSize(14).text('12. Diagnóstico');
+    doc.fontSize(12).text(`Diagnóstico : ${diagnostico.diagnostico}`);
+    doc.fontSize(12).text(`Tipo de Lente : ${diagnostico.tiposLentes}`);
+    doc.fontSize(12).text(`Observaciones : ${diagnostico.observaciones || 'No hay observaciones'}`);
+    doc.fontSize(12).text(`Próxima Cita : ${diagnostico.proximaCita}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text('13. Datos Montajes');
+    doc.fontSize(12).text(`odH : ${datosMontaje.odH}` );
+    doc.fontSize(12).text(`odV : ${datosMontaje.odV}`);
+    doc.fontSize(12).text(`oiH : ${datosMontaje.oiH}`);
+    doc.fontSize(12).text(`oiV : ${datosMontaje.oiV}`);
+    doc.moveDown();
+  
     doc.moveDown();
     doc.moveDown();
 
